@@ -19,13 +19,13 @@ import os
 import glob
 from sklearn.model_selection import train_test_split
 
-def randomize(a,b): #a-datas,b-labels   # shuffle datas and labels with same index
-    print(a.shape)
-    print(b.shape)
-    p = np.random.permutation(a.shape[0]) # Generate the permutation index array.
-    shuffled_a = a[p]
-    shuffled_b = b[p]
-    return(shuffled_a, shuffled_b)
+#def randomize(a,b): #a-datas,b-labels   # shuffle datas and labels with same index
+    #print(a.shape)
+    #print(b.shape)
+    #p = np.random.permutation(a.shape[0]) # Generate the permutation index array.
+    #shuffled_a = a[p]
+    #shuffled_b = b[p]
+    #return(shuffled_a, shuffled_b)
     
 def saperatedata(filename):
 
@@ -37,8 +37,8 @@ def saperatedata(filename):
     data = raw_data.get_data() 
         
     #electrode-wise exponential moving standardizatio
-    m = np.mean(data[:,0:1000], axis = 1) #m0 is the first 1000 datapoints mean values
-    v = np.var(data[:,0:1000],axis = 1) #v0 is the first 1000 datapoints variance values
+    m = np.mean(data[:,0:1000], axis = 1) #m is the first 1000 datapoints mean values
+    v = np.var(data[:,0:1000],axis = 1) #v is the first 1000 datapoints variance values
     sd = np.zeros((data.shape[0],data.shape[1]))
     
     for i in range(1000,data.shape[1]):
@@ -69,7 +69,6 @@ def saperatedata(filename):
     labels = np.array(labels)
     return(newsd,labels)
 
-#    
 data_folder ="C:\\Users\OWNER\Desktop\BCICIV_2a_gdf"
 filenames = glob.glob(os.path.join(data_folder, '*T.gdf'))
 
@@ -136,19 +135,19 @@ model.add(layers.Conv2D(200, (1, 10), activation='relu',kernel_constraint = max_
 model.add(layers.BatchNormalization(axis=3,epsilon=1e-05, momentum=0.1))
 model.add(layers.MaxPooling2D((1, 3),strides = (1,3)))
 model.add(layers.Dropout(0.5))
-
 model.summary()
+
 #classification layer
 model.add(layers.Flatten())
 #model.add(layers.Dense(200, activation='relu'))
 model.add(layers.Dense(4, activation='softmax'))
-
 model.summary()
 
 #Compile and train the model
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy']) #not sure loss function
 history = model.fit(allnewsds_train, alllabels_train, epochs=50,
                     validation_data=(allnewsds_test, alllabels_test))
+
 #Evaluate the model
 test_loss, test_acc = model.evaluate(allnewsds_test, alllabels_test, verbose=2)
 
@@ -171,6 +170,7 @@ plt.show()
 
 print(test_acc)
 
+#plot confusion matrix
 labels = alllabels_test
 predictions = model.predict(allnewsds_test)
 predictions = tf.argmax(predictions,1)
