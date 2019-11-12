@@ -4,7 +4,7 @@ Created on Wed Nov  6 09:44:54 2019
 
 @author: OWNER
 """
-#this script used raw data for motor classification(left or right hand)
+#this script used continuous raw data for motor classification(left or right hand)
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Activation, Permute, Dropout
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
