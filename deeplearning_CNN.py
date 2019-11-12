@@ -94,31 +94,31 @@ alllabels_test = key[index]
 
 #CNN model denifition
 #CNN takes tensors of shape (image_height, image_width, color_channels), ignoring the batch size. 
-input_shape = (18, 276, 1) #chn = 25, trial_length = 276 
+input_shape = (18, 1024, 1) #chn = 18, trial_length = 1024 
 
 model = models.Sequential() 
 #conv_pool block1     
-model.add(layers.Conv2D(18, (1, 10), activation="relu", input_shape=(18, 276, 1),
+model.add(layers.Conv2D(25, (1, 10), activation="relu", input_shape=(18, 1024, 1),
                         kernel_constraint = max_norm(2., axis=(0,1,2)))) #kernel_size(height,width) 
-model.add(layers.Conv2D(18, (18,1), activation="relu", kernel_constraint = max_norm(2., axis=(0,1,2))))
+model.add(layers.Conv2D(25, (18,1), activation="relu", kernel_constraint = max_norm(2., axis=(0,1,2))))
 model.add(layers.BatchNormalization(axis=3,epsilon=1e-05, momentum=0.1))
-model.add(layers.MaxPooling2D((1, 3),strides = (3,1)))
+model.add(layers.MaxPooling2D((1, 3),strides = (1,3)))
 model.add(layers.Dropout(0.5))
 
 #conv_pool block2
 model.add(layers.Conv2D(50, (1, 10), activation='relu',kernel_constraint = max_norm(2., axis=(0,1,2))))
 model.add(layers.BatchNormalization(axis=3,epsilon=1e-05, momentum=0.1))
-model.add(layers.MaxPooling2D((1, 3),strides = (3,1)))
+model.add(layers.MaxPooling2D((1, 3),strides = (1,3)))
 model.add(layers.Dropout(0.5))
 ##conv_pool block3
 model.add(layers.Conv2D(100, (1, 10), activation='relu',kernel_constraint = max_norm(2., axis=(0,1,2))))
 model.add(layers.BatchNormalization(axis=3,epsilon=1e-05, momentum=0.1))
-model.add(layers.MaxPooling2D((1, 3),strides = (3,1)))
+model.add(layers.MaxPooling2D((1, 3),strides = (1,3)))
 model.add(layers.Dropout(0.5))
 ##conv_pool block4
 model.add(layers.Conv2D(200, (1, 10), activation='relu',kernel_constraint = max_norm(2., axis=(0,1,2))))
 model.add(layers.BatchNormalization(axis=3,epsilon=1e-05, momentum=0.1))
-model.add(layers.MaxPooling2D((1, 3),strides = (3,1)))
+model.add(layers.MaxPooling2D((1, 3),strides = (1,3)))
 model.add(layers.Dropout(0.5))
 
 model.summary()
