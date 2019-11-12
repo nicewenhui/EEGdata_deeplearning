@@ -5,7 +5,7 @@
 Created on Thu Oct 31 17:41:04 2019
 @author: zhangwenhui
 """
-#this script used raw data for 4 kind of motor imagine classification
+#this script used continuous raw data for 4 kind of motor imagine classification
 from __future__ import absolute_import, division, print_function, unicode_literals
 import tensorflow as tf
 from tensorflow import keras
