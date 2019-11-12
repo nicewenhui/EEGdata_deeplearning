@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """
-Created on Wed Nov  6 09:44:54 2019
+Created on Tue Nov 12 09:51:44 2019
 
 @author: OWNER
 """
-#this script used continuous raw data for motor classification(left or right hand)
+#this script used raw data for motor classification(left or right hand)
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Activation, Permute, Dropout
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
@@ -22,21 +21,21 @@ import numpy as np
 import os
 import glob
 from sklearn.model_selection import train_test_split
+from keras.callbacks import ModelCheckpoint
 
 def newdatalabels(filename):
     raw_data = mne.io.read_raw_eeglab(filename,preload=True)
     mne.set_log_level("WARNING")
     raw_data.resample(128,npad='auto') #resampling
     #band-pass filtering in the range 4 Hz - 38 Hz
-    raw_data.filter(4, 38, method ="iir")   
-#    data=raw_data.get_data()
+    raw_data.filter(8, 30, method ="iir")   
+    data=raw_data.get_data()
 #    chs = raw_data.pick_channels(['FC6','FCZ','FC5','FC3','FC4','CP3','CP4','C5','C3','C1','CZ','C2','C4','C6'])
     
-    chs = raw_data.pick_channels(['FCZ','FC5','FC1','FC2','FC6','FC3','FC4','C5',
-                          'C3','C1','CZ','C2','C4','C6','CP3','CP1','CP2','CP4',
-                          'FCC1H','FCC2H','FCC3H','FCC4H','FCCZ','CCP1H','CCP2H'])
-    data = chs.get_data()
-#    data = data[122:130,:]
+#    chs = raw_data.pick_channels(['FCZ','FC5','FC1','FC2','FC6','FC3','FC4','C5',
+#                          'C3','C1','CZ','C2','C4','C6','CP3','CP1','CP2','CP4'])
+#    data = chs.get_data()
+    data = data[122:130,:]
 
     #electrode-wise exponential moving standarlization
     m = np.mean(data[:,0:1000], axis = 1) #m is the first 1000 datapoints mean values
@@ -55,8 +54,8 @@ def newdatalabels(filename):
     print(filename)
     for i in  range(len(events_from_annot)):
         if events_from_annot[i,2]==1 or events_from_annot[i,2]==2:
-            st = events_from_annot[i,0]-256 #start time
-            et = events_from_annot[i,0]+768 #end time
+            st = events_from_annot[i,0]-128 #start time -1s
+            et = events_from_annot[i,0]+256 #end time 2s
             labels.append(events_from_annot[i,2])
             #newsd.append(sd[:,st:et])            
             tmp = sd[:,st:et]
@@ -67,7 +66,7 @@ def newdatalabels(filename):
     labels = np.array(labels)
     return(newsd,labels)
 
-def EEGNet(nb_classes, Chans = 25, Samples = 1024, 
+def EEGNet(nb_classes, Chans = 8, Samples = 384, 
              dropoutRate = 0.5, kernLength = 64, F1 = 8, 
              D = 2, F2 = 16, norm_rate = 0.25, dropoutType = 'Dropout'):
 #    Inputs:
@@ -129,7 +128,7 @@ for filename in filenames:
     filename = filename.split("\\")
     print("filename: " +filename[-1])  
 
-allnewsds = np.empty((0,25,1024),float)
+allnewsds = np.empty((0,8,384),float)
 alllabels = np.array([])
 
 for file in filenames:
@@ -153,14 +152,22 @@ key = np.array([0,1])
 index = np.digitize(alllabels_test.ravel(), palette, right=True)
 alllabels_test = key[index]
 
-model = EEGNet(nb_classes=2, Chans = 25, Samples = 1024, 
+model = EEGNet(nb_classes=2, Chans = 8, Samples = 384, 
              dropoutRate = 0.5, kernLength = 64, F1 = 8, 
              D = 2, F2 = 16, norm_rate = 0.25, dropoutType = 'Dropout')
 model.summary()
 
+# checkpoint
+filepath="C:\\Users\OWNER\Desktop\\allmotordata\\weights\\motorallsubjects_testweightsbest.hdf5"
+checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
+callbacks_list = [checkpoint]
+
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-history = model.fit(allnewsds_train, alllabels_train, epochs=350,
-                    validation_data=(allnewsds_test, alllabels_test))
+
+history = model.fit(allnewsds_train, alllabels_train, epochs=500,
+                    validation_data=(allnewsds_test, alllabels_test), callbacks=callbacks_list)
+
+model.load_weights(filepath)
 test_loss, test_acc = model.evaluate(allnewsds_test, alllabels_test, verbose=2)
 
 plt.plot(history.history['accuracy'], label='accuracy')
@@ -182,7 +189,35 @@ plt.show()
 
 print(test_acc)
 
-labels = alllabels_test
-predictions = model.predict(allnewsds_test)
-predictions = tf.argmax(predictions,1)
-print(tf.math.confusion_matrix(labels,predictions,num_classes=2))
+#labels = alllabels_test
+#predictions = model.predict(allnewsds_test)
+#predictions = tf.argmax(predictions,1)
+#print(tf.math.confusion_matrix(labels,predictions,num_classes=2))
+
+model.load_weights(filepath)
+
+y_test_pred=tf.argmax(model.predict(allnewsds_test),1)
+con_mat = tf.math.confusion_matrix(labels=alllabels_test, predictions=y_test_pred).numpy()
+import pandas as pd
+import seaborn as sns
+con_mat_norm = np.around(con_mat.astype('float') / con_mat.sum(axis=1)[:, np.newaxis], decimals=2)
+ 
+con_mat_df = pd.DataFrame(con_mat_norm,
+                     index = [0,1], 
+                          
+                     columns = [0,1])
+
+figure = plt.figure(figsize=(6, 6))
+
+#bug in matplotlib 3.1.1 version
+ax = sns.heatmap(con_mat_df, annot=True, square = True, cmap=plt.cm.Reds,annot_kws={"size": 20}, vmin = 0, vmax = 1)
+bottom, top = ax.get_ylim()
+ax.set_ylim(bottom + 0.5, top - 0.5)
+ax.axes.set_title("Confusion Matrix",fontsize=12)
+ax.set_xlabel("Predicted N-back",fontsize=12)
+ax.set_ylabel("True N-back",fontsize=12)
+#plt.tight_layout()
+plt.title('Confusion Matrix')
+plt.ylabel('True label')
+plt.xlabel('Predicted label')
+plt.show()
